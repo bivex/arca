@@ -1731,6 +1731,7 @@ class ScalePattern(Default):
 							'useGroups': True,
 							
 							'chainMotive': False,
+							'makeRecursiveNeighbors': False,
 							'lastChordTone': False,
 							
 							'iterIndex': 0,
@@ -2298,6 +2299,7 @@ class Arpeggiation(Default):
 							'useGroups': True,
 							
 							'chainMotive': False,
+							'makeRecursiveNeighbors': False,
 							'lastChordTone': False,
 							
 							'iterIndex': 0,

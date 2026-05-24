@@ -1,0 +1,20 @@
+// Cinematic Tension - 30 seconds of building dread
+TimeSignature = 4/4; BeatDuration = 0.5; Spelling = flats
+
+// Octatonic scale for harmonic instability
+TensionScale = Scale(C Db Eb E Gb G A Bb)
+
+// 1. Dissonant Drone (The Base)
+Drone = Chord([C2 Gb2 C3], container = TensionScale, durations = 16 16 16 16)
+
+// 2. The Rising "Claw" (Rhythmic Tension)
+// Acceleration: durations go from 4 down to 0.25
+Claw = Chord([C4 Eb4 G4], container = TensionScale, progression = T1 T1 T1 T1 T1 T1 T1 T1, durations = 4 3 2 1.5 1 0.75 0.5 0.25)
+
+// 3. High Dissonant Lead (The "Scream")
+// Manual notes to avoid NHT matching errors
+Lead = Chord([Bb5 E6 G6], container = TensionScale, progression = T1 T-1 T2 T-2 T3 T-3, durations = 1 1 2)
+
+DroneStream: ! ! ! !
+ClawStream: @+1 ! ! ! ! ! ! ! !
+LeadStream: @+4 ! ! ! ! ! ! ! ! ! ! ! !

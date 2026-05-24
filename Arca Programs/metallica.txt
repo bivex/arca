@@ -1,0 +1,11 @@
+// Metallica Style - Epic Thrash Riff
+TimeSignature = 4/4; BeatDuration = 0.125; Spelling = flats
+
+// E Phrygian (E F G A B C D) - dark and heavy
+MetalScale = Scale(E F G A B C D)
+
+// Riff: E5 (gallop), F5 (power chord), E5 (gallop), G5, F5
+// T0 = E, T1 = F, T2 = G
+Riff = Chord([E2 B2 E3], container = MetalScale, progression = T0 T0 T0 T1 T0 T0 T0 T3 T1, durations = 1 1 2 4 1 1 2 2 2)
+
+RiffStream: ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
