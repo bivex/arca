@@ -1909,7 +1909,8 @@ class ScalePattern(Default):
 		if target is None:
 			target = int(data[0])
 		interval = sign*int(data[1])
-		return ['N', target, level, interval]
+		quantizeDirection = -sign
+		return ['N', target, level, interval, quantizeDirection]
 		
 	def get_object(self, varName):
 		qObj = self.objectDict.get(varName)
@@ -2037,11 +2038,6 @@ class ScalePattern(Default):
 		
 			TODO: Incorporate this new logic into the CoreVoiceleading version of the routine.
 		
-			TODO: save all the scale degrees of the different NHTs?
-		
-			TODO: forward looking NHT evaluation?
-		
-		
 		"""
 		
 		if fullStructure is None:
@@ -2065,14 +2061,17 @@ class ScalePattern(Default):
 			return None
 			
 		elif NHTtype == 'P':
+			# Translate unanchored neighbor P to floating neighbor F
 			targetNote = n[1]
 			level = n[2]
-			"""TODO: test this, I suspect it doesn't work exactly"""
-			if self.container and level is not None:
-				targetNote = self.container.hierarchy[level].__getitem__(note)
-			return self.scale.output_note(targetNote)
-		
-		elif NHTtype == 'F':					# floating nonharmonic tone ['F', targetNote, targetLevel, intervalLevel, interval]
+			interval = n[3] if len(n) > 3 else 0
+			# ['F', targetNote, targetLevel, interval, intervalLevel]
+			n = ['F', targetNote, 0, interval, level]
+			NHTtype = 'F'
+			# Continue to F handling
+
+		if NHTtype == 'F':
+					# floating nonharmonic tone ['F', targetNote, targetLevel, intervalLevel, interval]
 			targetNote = self.scale.get_note_in_hierarchy(n[1], level = n[2])
 			parameter = n[3]
 			if n[4] != None:
@@ -2490,7 +2489,8 @@ class Arpeggiation(Default):
 		if target is None:
 			target = int(data[0])
 		interval = sign*int(data[1])
-		return ['N', target, level, interval]
+		quantizeDirection = -sign
+		return ['N', target, level, interval, quantizeDirection]
 	
 	def get_object(self, varName):
 		qObj = self.objectDict.get(varName)
@@ -2743,21 +2743,24 @@ class Arpeggiation(Default):
 			return None
 			
 		elif NHTtype == 'P':
+			# Translate unanchored neighbor P to floating neighbor F
 			targetNote = n[1]
 			level = n[2]
-			"""TODO: test this, I suspect it doesn't work exactly"""
-			if self.container and level is not None:
-				targetNote = self.container.hierarchy[level].__getitem__(note)
-			return self.chord.output_note(targetNote)
-			
-		elif NHTtype == 'D':					# octave doubling, should be changed to 'O'?
+			interval = n[3] if len(n) > 3 else 0
+			# ['F', targetNote, targetLevel, interval, intervalLevel]
+			n = ['F', targetNote, 0, interval, level]
+			NHTtype = 'F'
+			# Continue to F handling
+		
+		if NHTtype == 'D':					# octave doubling, should be changed to 'O'?
 			
 			targetNote = self.chord[n[1]]
 			if type(targetNote) is list:
 				targetNote = targetNote[0]
 			return self.chord.output_note(targetNote + n[3])
 		
-		elif NHTtype == 'F':					# floating nonharmonic tone ['F', targetNote, targetLevel, interval, intervalLevel]
+		if NHTtype == 'F':
+					# floating nonharmonic tone ['F', targetNote, targetLevel, interval, intervalLevel]
 			targetNote = self.chord.scale.get_note_in_hierarchy(n[1], level = n[2])
 			parameter = n[3]
 			if n[4] != None:
