@@ -1,0 +1,8 @@
+// Heavy Rock Style Arca Program
+TimeSignature = 4/4; BeatDuration = 0.25; Spelling = sharps
+
+Scale = Scale(E F# G A B C D)
+
+Chord = Chord([E2 B2 E3], container = Scale, progression = [T0 T-4 T2 T2], durations = [4 4 2 2 4])
+
+ChordStream: ! ! ! ! ! ! ! !
