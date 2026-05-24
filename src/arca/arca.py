@@ -49,18 +49,6 @@ VERSION 9/20/2024
 			2. supports beat-based rhythms (that is, you call it every beat and sometimes get notes)
 			3. has the ability to automatically apply the chord's next() method after output
 	
-	TODO IMPORTANT:
-		In brython False == None is True, whereas None == False is False (I believe javascript converts to the first type)?  
-
-		Change spelling elegantly and quickly, at anypoint in the stream (sharps, flats)
-			good spelling is important and hard
-
-		griegNOWEB failed because of the @m syntax, but only in brython???  That is weird.  It works fine when converted to beats.
-			- solved by converting @m to integers, when they should be converted.  Should this happen elsewhere?
-			- and why was this making problems?  Makes me think the beat regularization is error-filled.  Check that out more thoroughly?
-
-		Chrome won't play Spiegel.  Too much audio info cued too far in advance?
-
 	TODO:
 		Rethink chord -- a chord should be a subclass of scale, or should include a scale in it
 		NHT syntax: 
@@ -1655,7 +1643,7 @@ class Scale(CoreVoiceleading):
 				return upperSD
 			if frac1 < frac2:
 				return lowerSD
-			if tieBreak == None:								# randomly choose when confronted with ties
+			if tieBreak is None:								# randomly choose when confronted with ties
 				return random.choice([upperSD, lowerSD])
 			if tieBreak > 0:
 				return upperSD
@@ -2074,7 +2062,7 @@ class ScalePattern(Default):
 					# floating nonharmonic tone ['F', targetNote, targetLevel, intervalLevel, interval]
 			targetNote = self.scale.get_note_in_hierarchy(n[1], level = n[2])
 			parameter = n[3]
-			if n[4] != None:
+			if n[4] is not None:
 				level = n[4] - 1
 			else:
 				level = None
@@ -2759,7 +2747,7 @@ class Arpeggiation(Default):
 					# floating nonharmonic tone ['F', targetNote, targetLevel, interval, intervalLevel]
 			targetNote = self.chord.scale.get_note_in_hierarchy(n[1], level = n[2])
 			parameter = n[3]
-			if n[4] != None:
+			if n[4] is not None:
 				level = n[4] - 1
 			else:
 				level = None
@@ -4266,6 +4254,10 @@ class Timeline(Default):
 					sequence = []
 					self.add_sequence(targetBeat, sequence)
 				
+				elif item == 'sharps':
+					sequence.append([self.change_spelling, [1]])
+				elif item == 'flats':
+					sequence.append([self.change_spelling, [-1]])
 				elif item.startswith('@'):
 					targetBeat = parse_number(item[1:])
 					sequence = []
@@ -4374,6 +4366,9 @@ class Timeline(Default):
 	
 	def change_beat(self, timeDelta = 0):
 		self.currentOffset += timeDelta
+		
+	def change_spelling(self, spelling):
+		self.program.spelling = spelling
 	
 	def play_object(self, indices = None):
 		
