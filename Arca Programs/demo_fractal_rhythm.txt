@@ -1,0 +1,19 @@
+// Fractal Mirrors - Recursive Rhythm and Dualist Demo
+TimeSignature = 4/4; BeatDuration = 0.125; Spelling = flats
+
+// Harmonic Minor Scale
+MetalScale = Scale(C D Eb F G Ab B)
+
+// Rhythms
+Pulse = RhythmGenerator(playPct = 40)
+Jitter = RhythmGenerator(playPct = 80)
+// Recursive nesting: Jitter gated by Pulse
+FractalRhythm = RhythmGenerator(generators = [Pulse Jitter])
+
+// Advanced Theme:
+// - Uses the FractalRhythm
+// - Progression rotates through dualist mirror (T*1) and swap (C*1)
+Theme = Chord([C3 G3 C4], container = MetalScale, progression = [T*1 C*1], durations = [1], rhythm = FractalRhythm)
+
+// Play it!
+ThemeStream: Theme: & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & &

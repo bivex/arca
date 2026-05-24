@@ -1,0 +1,15 @@
+// The Mirror Maze - Dualist Transformation Demo
+// Demonstrates T* (dualist transposition) and C* (dualist crossing)
+TimeSignature = 4/4; BeatDuration = 0.25; Spelling = sharps
+
+MirrorScale = Scale(D E F G A B C)
+
+// Original Theme - static
+Theme = Chord([D3 F3 A3], container = MirrorScale, durations = [4])
+
+// Mirror Reflection - dynamic
+// Every time & is used, it applies the next transformation in the progression
+Reflection = Chord([D3 F3 A3], container = MirrorScale, progression = [T*1 C*1], durations = [4])
+
+ThemeStream: Theme: ! ! ! ! ! ! ! !
+ReflectionStream: Reflection: & & & & & & & &

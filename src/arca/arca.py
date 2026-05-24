@@ -1053,7 +1053,7 @@ class CoreVoiceleading(Default):
 		tDict = {note1: path1, (note2 % self.modulus): path2}
 		self.apply_VL_dict(tDict)
 		
-	def dualist_transposition(self, transposition = 0, forceInversions = False):
+	def dualist_transposition(self, transposition = 0, extraRotations = 0, forceInversions = True):
 		"""inversion by number, either dualist or nondualist"""
 		
 		gnf = geometrical_normal_form_local(self.sortedPCs, invert = True, modulus = self.modulus)
@@ -1312,6 +1312,7 @@ class Scale(CoreVoiceleading):
 			args = [startObject]
 			self.progression = prog
 		
+		theScale = None
 		if args:
 			theScale = args[0]
 			
@@ -1319,33 +1320,34 @@ class Scale(CoreVoiceleading):
 		
 		self.permDict = {}
 		
-		if type(theScale) is int:
-			theScale = Scale.defaultScales.get(theScale, [int(i*self.modulus/theScale) for i in range(theScale)])	# maximally even n-note scale
-		elif type(theScale) is str:
-			theScale = [parse_lettername(x) for x in theScale.split()]
+		if theScale is not None:
+			if type(theScale) is int:
+				theScale = Scale.defaultScales.get(theScale, [int(i*self.modulus/theScale) for i in range(theScale)])	# maximally even n-note scale
+			elif type(theScale) is str:
+				theScale = [parse_lettername(x) for x in theScale.split()]
 			
-		if self.useMidi:	
-			if self.container:
-				theScale = [self.container.scalarPC(x) for x in theScale]
-			else:
-				theScale = [x % 12 for x in theScale]	
-				
-		if self.sort:
-			theScale = sorted(theScale)
-		
-		theScale = self.check_for_multiset(theScale)
-		
-		self.len = len(theScale)
-		self.lastVoiceleading = {}
-		self.latticeApplications = 0														# for undoing VL-lattice moves
-		self.lastLatticeParameters = []														# for redoing lattice moves
-		
-		self.currentNotes = [x + self.keyOffset for x in theScale]
-		self.SDs = [x + self.startDegree for x in range(self.len)] 
-		self.modSDs = [x % self.len for x in self.SDs]
-		
-		self.update()
-		self.get_basic_VL()
+			if self.useMidi:	
+				if self.container:
+					theScale = [self.container.scalarPC(x) for x in theScale]
+				else:
+					theScale = [x % 12 for x in theScale]	
+					
+			if self.sort:
+				theScale = sorted(theScale)
+			
+			theScale = self.check_for_multiset(theScale)
+			
+			self.len = len(theScale)
+			self.lastVoiceleading = {}
+			self.latticeApplications = 0														# for undoing VL-lattice moves
+			self.lastLatticeParameters = []														# for redoing lattice moves
+			
+			self.currentNotes = [x + self.keyOffset for x in theScale]
+			self.SDs = [x + self.startDegree for x in range(self.len)] 
+			self.modSDs = [x % self.len for x in self.SDs]
+			
+			self.update()
+			self.get_basic_VL()
 		
 	def change_scale_with_MIDI(self, theNotes, **kwargs):
 		PCs = sorted(set([x % 12 for x in theNotes]))
@@ -1597,6 +1599,8 @@ class Scale(CoreVoiceleading):
 		THIS STILL NEEDS TESTING!
 		
 		"""
+		if type(target) is str:
+			target = parse_lettername(target)
 		originalTarget = target 
 		
 		"""get the scale degree closest to our current value"""
@@ -1743,9 +1747,8 @@ class ScalePattern(Default):
 							'objectDict': {},					# for multi-object structures
 							
 							'currentOutput': [],
-							
+							'rhythm': None,
 							'useGroups': True,
-							
 							'chainMotive': False,
 							'makeRecursiveNeighbors': False,
 							'lastChordTone': False,
@@ -2328,9 +2331,8 @@ class Arpeggiation(Default):
 							'dependentObjects': [],
 							
 							'currentOutput': [],
-							
+							'rhythm': None,
 							'useGroups': True,
-							
 							'chainMotive': False,
 							'makeRecursiveNeighbors': False,
 							'lastChordTone': False,
@@ -2977,6 +2979,7 @@ class Chord(CoreVoiceleading):
 							'useGroups': True,
 							'multiset': False,
 							'outPCs': [],
+							'rhythm': None,
 							'mainPattern': False,
 							'currentNotes': [],
 							'objectDict': {},
@@ -4018,27 +4021,43 @@ class Program():
 
 		return([self.defaultTimeline.make_object, args, kwargs])
 	
+	def resolve_value(self, val):
+		if type(val) is list:
+			return [self.resolve_value(i) for i in val]
+		if type(val) is not str:
+			return val
+		val = val.strip()
+		if val.startswith('[') and val.endswith(']'):
+			# Process as list
+			items = parse_parentheses(val[1:-1].split())
+			return [self.resolve_value(i) for i in items]
+		# Try to find in objectDict
+		if val in self.objectDict:
+			return self.objectDict[val]
+		# Try to parse as number if it looks like one
+		if any(c.isdigit() for c in val):
+			try:
+				res = parse_number(val)
+				if res is not None:
+					return res
+			except:
+				pass
+		return val
+
 	def parse_arguments(self, s):
 		args = []
 		kwargs = {}
 		parameters = parse_parentheses(s.split(','), ',')
 		
 		for p in parameters:
-			"""self.apply_macro here???"""
-			p = p.rstrip(' ').lstrip(' ')
-			if p.count('='):
-				k, val, *junk = p.split('=')
-				k = k.replace(' ', '')
-				if k in ['container', 'chord']:
-					val = val.replace(' ', '')
-					val = self.objectDict.get(val, val)
-				elif k in ['durations', 'length']:
-					val = [parse_number(x) for x in val.split()]
-				elif k in ['progression']:
-					val = parse_parentheses(val.split())
-				kwargs[k] = val
+			p = p.strip()
+			if '=' in p:
+				k, val = p.split('=', 1)
+				k = k.strip()
+				val = val.strip()
+				kwargs[k] = self.resolve_value(val)
 			else:
-				args.append(p)
+				args.append(self.resolve_value(p))
 		return args, kwargs
 		
 	def get_object(self, objectOrName):
@@ -4335,17 +4354,31 @@ class Timeline(Default):
 	
 	def playnote(self, index, dur):
 		obj = self.currentObject
+		velocity = 64
+		if obj.rhythm:
+			res = obj.rhythm()
+			if not res:
+				return
+			if res > 1:
+				velocity = res
 		theNotes = obj.get_group(index)
-		velocities = [64]							# placeholder
+		velocities = [velocity]							# placeholder
 		noteData = [theNotes, velocities, dur]
 		self.program.masterOutput.setdefault(self, {}).setdefault(self.currentOffset, []).append(noteData)
 	
 	"""TODO: I don't think we need this if get_group can backfill, calculating all notes up to the desired one"""
 	def playnote_incomplete(self, index, dur):
 		obj = self.currentObject
+		velocity = 64
+		if obj.rhythm:
+			res = obj.rhythm()
+			if not res:
+				return
+			if res > 1:
+				velocity = res
 		for i in range(0, index + 1):
 			theNotes = obj.get_group(i)
-		velocities = [64]							# placeholder
+		velocities = [velocity]							# placeholder
 		noteData = [theNotes, velocities, dur]
 		self.program.masterOutput.setdefault(self, {}).setdefault(self.currentOffset, []).append(noteData)
 		
@@ -4420,18 +4453,14 @@ class Timeline(Default):
 		pass
 	
 	def make_object(self, varName, objectName, *args, **kwargs):
-		global objectDict
-		if objectName in ['Scale', 'Chord', 'Arpeggiation']:
-			container = kwargs.get('container')
-			if type(container) is str:
-				kwargs['container'] = self.program.get_object(container)
+		# Defer resolution until creation time
+		args = [self.program.resolve_value(a) for a in args]
+		for k, v in kwargs.items():
+			kwargs[k] = self.program.resolve_value(v)
 			
-			chord = kwargs.get('chord')
-			if type(chord) is str:
-				kwargs['chord'] = self.program.get_object(chord)
-			
-			kwargs['objectDict'] = self.program.objectDict
+		if objectName in globals():
+			if objectName in ['Scale', 'Chord', 'Arpeggiation', 'ScalePattern', 'Pattern', 'RhythmGenerator', 'VelocityGenerator']:
+				kwargs['objectDict'] = self.program.objectDict
 			self.program.objectDict[varName] = globals()[objectName](*args, **kwargs)
-			objectDict = self.program.objectDict
 		else:
-			print("ARCA ERROR: Can't find object with name", varName)
+			print("ARCA ERROR: Can't find class with name", objectName)

@@ -49,17 +49,15 @@ def parse_lettername(s, lastOctaveSymbol = -1):
 	return letterName + modifier + (octave + 1)*12
 
 def parse_number(s):
-	if s.count('.') > 0:
-		firstDot = s.index('.')
-		newS = s[:firstDot] + '.' + s[firstDot+1:].replace('.','')
-		return float(''.join([x for x in newS if x.isdigit() or x in '.-'])) 
-	elif s.count('/') > 0:
-		firstSlash = s.index('/')
-		return float(s[:firstSlash])/float(s[firstSlash+1:].replace('/',''))
-	else:
-		digitChars = ''.join([x for x in s if x.isdigit() or x == '-'])
-		if digitChars:
-			return int(digitChars)
+	s = s.strip()
+	try:
+		if '/' in s:
+			numerator, denominator = s.split('/', 1)
+			return float(numerator) / float(denominator)
+		if '.' in s:
+			return float(s)
+		return int(s)
+	except (ValueError, ZeroDivisionError):
 		return None
 
 def spell_MIDI(mNotes = [], octaves = None):
