@@ -1,0 +1,27 @@
+// "The Trader's Journey" - Epic Algorithmic Composition
+TimeSignature = 4/4; BeatDuration = 0.125; Spelling = sharps
+
+// Market Scales
+BullMarket = Scale(C D E G A) // Pentatonic - stable growth
+CrashScale = Scale(C Db Eb E Gb G A Bb) // Octatonic - high tension
+
+// Ticking Market Pulse
+FastTicks = RhythmGenerator(playPct = 60)
+MarketOpening = RhythmGenerator(generators = [FastTicks], playPct = 90)
+
+// 1. The Stable Growth (Bull Run)
+Growth = Chord([C2 G2 C3], container = BullMarket, durations = [4], rhythm = MarketOpening)
+
+// 2. The Volatile Riff (Day Trading)
+Trading = Chord([C3 E3 G3], container = BullMarket, progression = [T1 T1 T*2 T-1], durations = [1 1 2 4])
+
+// 3. The Lead - "High Frequency Trading"
+HFT_Rhythm = RhythmGenerator(playPct = 85)
+Lead = Chord([C5 E5 G5], container = BullMarket, progression = [T1 T2 T-1 T3], durations = [1], rhythm = HFT_Rhythm)
+
+// STREAMS
+GrowthStream: Growth: ! ! ! ! ! ! ! !
+TradingStream: @32 Trading: & & & & & & & &
+LeadStream: @64 Lead: & & & & & & & & & & & & & & & &
+ReflectionStream: @96 Trading: sharps T*4 ! ! ! ! ! ! ! !
+CrashStream: @128 Growth: flats T1 ! ! ! !

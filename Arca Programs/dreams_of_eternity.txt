@@ -1,0 +1,28 @@
+// "Сны Вечности" (Dreams of Eternity)
+// Atmospheric 2-minute arrangement
+TimeSignature = 4/4; BeatDuration = 0.5; Spelling = flats
+
+// Lydian Scale for a sense of wonder and floating
+EternityScale = Scale(C D E Gb G A B)
+
+// Shimmering recursive rhythm
+SlowPulse = RhythmGenerator(playPct = 30)
+Glimmer = RhythmGenerator(generators = [SlowPulse], playPct = 50)
+
+// 1. Deep Pad Waves
+Waves = Chord([C2 G2 E3], container = EternityScale, progression = [T1 T-1 T2 T-2], durations = [16])
+
+// 2. Mid-range Flow
+Flow = Chord([C4 E4 G4 B4], container = EternityScale, progression = [T0 T1 T-1 T2], durations = [4 4 8])
+
+// 3. Ethereal Bells
+Bells = Chord([C6 Gb6 B6], container = EternityScale, progression = [T*1 T-2], durations = [2], rhythm = Glimmer)
+
+// STREAMS - Extended for ~2 minutes (120 seconds)
+// 120 seconds / (0.5s per beat) = 240 beats total
+// Waves: 16 beats per ! -> 15 units = 240 beats
+WaveStream: Waves: ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+// Flow: offset 8, then plays continuously
+FlowStream: @8 Flow: ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+// Bells: shimmering on top
+BellStream: @16 Bells: & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & &

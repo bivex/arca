@@ -1,0 +1,21 @@
+// Mozart Style - K. 525 "Eine kleine Nachtmusik" inspired
+TimeSignature = 4/4; BeatDuration = 0.125; Spelling = sharps
+
+// G Major Scale
+MozartScale = Scale(G A B C D E F#)
+
+// Classical articulation rhythm
+Articulated = RhythmGenerator(playPct = 95)
+Pulse = RhythmGenerator(playPct = 70)
+MozartRhythm = RhythmGenerator(generators = [Articulated Pulse])
+
+// Main Theme
+Theme = Chord([G3 D4 G4], container = MozartScale, durations = [4 4 2 2 4])
+
+// Alberti Bass accompaniment
+Bass = Chord([G2 B2 D3], container = MozartScale, progression = [T0 T4 T0], durations = [1 1 1 1], rhythm = MozartRhythm)
+
+// Use the stream to apply transformations rather than the assignment
+ThemeStream: Theme: ! ! ! !
+BassStream: Bass: & & & & & & & & & & & & & & & &
+MirrorStream: @16 Theme: T*4 ! ! ! !
