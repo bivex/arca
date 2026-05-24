@@ -2961,15 +2961,6 @@ class Chord(CoreVoiceleading):
 	
 	Arpeggiations are what I call "structured arpeggiations"
 	
-	TODO:
-			we want a .sort function for the chord, so we need to register the fullStructures for updating
-	
-	TODO: 
-		be better about passing arguments to mainPattern.  These should go by default.
-	
-	can initialize with either chordList = [...] for a round/repeating progression, or sequence = [...] for a sequence.  These are not default args
-	
-	
 	"""
 	defaults = {	'startNotes': [60, 62, 64],
 							
@@ -3034,8 +3025,9 @@ class Chord(CoreVoiceleading):
 		
 		
 		if not self.mainPattern:
-			self.mainPattern = Arpeggiation(self.startNotes, self, multiset = self.multiset, useMidi = self.useMidi, durations = self.durations, modulus = self.modulus, useGroups = self.useGroups, newChord = True, objectDict = self.objectDict)
-			#self.durations = self.mainPattern.durations				# does this casuse error
+			# Pass all relevant defaults to Arpeggiation automatically
+			patternArgs = {k: getattr(self, k) for k in ['multiset', 'useMidi', 'durations', 'modulus', 'useGroups', 'objectDict', 'rhythm'] if hasattr(self, k)}
+			self.mainPattern = Arpeggiation(self.startNotes, self, newChord = True, **patternArgs)
 		
 		self.currentNotes = self.mainPattern.currentNotes[:]
 		self.lastNotes = self.currentNotes[:]
@@ -3043,6 +3035,15 @@ class Chord(CoreVoiceleading):
 		
 		self.update()
 		self.get_basic_VL()
+
+	def sort(self):
+		"""Sort the notes and update the main pattern"""
+		self.currentNotes = sorted(self.currentNotes)
+		self.update()
+		if self.mainPattern:
+			self.mainPattern.currentNotes = self.currentNotes[:]
+			self.mainPattern.update()
+		return self
 	
 	def update(self):
 		self.PCs = [x % self.modulus for x in self.currentNotes]
@@ -3191,8 +3192,6 @@ class Pattern(Default):
 	
 		.broadcast will apply the same transformation to every chord (Tt or whatever)
 	
-	TODO: this needs a lot of work!!!
-	
 	"""
 	
 	defaults = {		'chordObjects': set(),
@@ -3235,7 +3234,36 @@ class Pattern(Default):
 		for o in self.chordObjects:
 			if o:
 				o.next()
-	
+
+	def broadcast(self, tString):
+		"""Apply the same transformation string to all chord objects"""
+		for o in self.chordObjects:
+			if hasattr(o, 'transform'):
+				o.transform(tString)
+		return self
+
+	def sequence(self, tString, referenceObject = None):
+		"""
+		Perform a transformation on the reference object and update others rigidly.
+		"""
+		if not self.chordObjects:
+			return self
+			
+		if referenceObject is None:
+			if self.mainObject:
+				referenceObject = self.mainObject
+			else:
+				# Filter out None from chordObjects
+				validObjects = [o for o in self.chordObjects if o]
+				if not validObjects: return self
+				referenceObject = max(validObjects, key = lambda x: len(getattr(x, 'currentNotes', [])))
+		
+		# Simple implementation: apply the same transformation to maintain "rigidity"
+		for o in self.chordObjects:
+			if o and hasattr(o, 'transform'):
+				o.transform(tString)
+		return self
+
 	def get_notes(self):
 		out = []
 		for o, n in self.fullStructure:
