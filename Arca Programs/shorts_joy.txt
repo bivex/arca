@@ -1,0 +1,25 @@
+// Joyful Energy - Fast & Bouncy for YouTube Shorts
+TimeSignature = 4/4; BeatDuration = 0.0625; Spelling = sharps
+
+// Bright G Major Pentatonic (Classic "Joy" scale)
+SunnyScale = Scale(G A B D E)
+
+// High energy bouncy rhythm
+Bounce = RhythmGenerator(playPct = 70)
+DoubleTime = RhythmGenerator(playPct = 90)
+JoyRhythm = RhythmGenerator(generators = [Bounce DoubleTime])
+
+// 1. Driving Bass Pulse
+Bass = Chord([G2 D3], container = SunnyScale, durations = [8], rhythm = DoubleTime)
+
+// 2. Bright Rising Arpeggio (The "Sparkle")
+// Moves rapidly through the scale
+Sparkle = Chord([G3 B3 D4 G4], container = SunnyScale, progression = [T1 T2 T-1 T3], durations = [1 1 1 2], rhythm = JoyRhythm)
+
+// 3. High Energy Lead (The "Smile")
+Lead = Chord([G5 B5 D6], container = SunnyScale, progression = [T1 T-1 T2], durations = [2 2 4], rhythm = DoubleTime)
+
+// STREAMS - Fast pace (approx 15-20 seconds of high intensity)
+BassStream: Bass: ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+SparkleStream: @8 Sparkle: & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & &
+LeadStream: @16 Lead: & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & & &
