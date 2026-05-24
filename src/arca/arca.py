@@ -783,6 +783,12 @@ class CoreVoiceleading(Default):
 	
 		
 		if tType == 'T':
+			if tLabel.startswith('*'):
+				tLabel = tLabel[1:]
+				extraRotations = tLabel.count('.')
+				tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
+				if tLabel:
+					return [self.dualist_transposition, [int(tLabel), extraRotations], {}]
 			tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
 			if tLabel:
 				data = int(tLabel)
@@ -790,6 +796,13 @@ class CoreVoiceleading(Default):
 				return [self.double_transpose, [data, 0], {}]
 				
 		elif tType == 't':
+			if tLabel.startswith('*'):
+				tLabel = tLabel[1:]
+				extraRotations = tLabel.count('.')
+				tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
+				if tLabel:
+					# For chordal dualist transposition, we can use the same logic or a specialized one if needed
+					return [self.dualist_transposition, [int(tLabel), extraRotations], {}]
 			tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
 			if tLabel:
 				return [self.double_transpose, [0, int(tLabel)], {}]
@@ -826,6 +839,8 @@ class CoreVoiceleading(Default):
 				return [self.voicelead, [pairs], {}]
 		
 		elif tType == 'C':															# uses a different internal label from the text command, which is C.
+			isDualist = tLabel.startswith('*')
+			if isDualist: tLabel = tLabel[1:]
 			extraRotations = tLabel.count('.')
 			if tLabel.count('('):
 				PCs = self.find_inversion_from_text(tLabel)							
@@ -839,6 +854,9 @@ class CoreVoiceleading(Default):
 			else:
 				tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
 				if tLabel:
+					if isDualist:
+						# For dualist crossing, we might need a specific implementation or parameter
+						return [self.apply_crossing, [int(tLabel), extraRotations, True], {}]
 					return [self.apply_crossing, [int(tLabel), extraRotations], {}]
 					
 		elif tType == 'I' or tType == 'i':
@@ -1014,9 +1032,9 @@ class CoreVoiceleading(Default):
 	def double_transpose(self, bigT = 0, littleT = 0):
 		self.apply_VL_dict(self.make_Tt_dict(bigT, littleT))
 	
-	def apply_crossing(self, crossingNumber = 0, extraRotations = 0):
+	def apply_crossing(self, crossingNumber = 0, extraRotations = 0, isDualist = False):
 		tDict = {}
-		gnf = geometrical_normal_form_local(self.sortedPCs, invert = False, extraRotations = extraRotations, modulus = self.modulus)
+		gnf = geometrical_normal_form_local(self.sortedPCs, invert = isDualist, extraRotations = extraRotations, modulus = self.modulus)
 		transp = None
 		for i in range(self.modulus):
 			if all([(x + i) % self.modulus in self.sortedPCs for x in gnf]):
@@ -3543,6 +3561,9 @@ class RhythmGenerator(Default):
 			self.durationHistoModulus = weighted_choice(self.durationHisto)
 			self.durationHistoCounter = 0
 		return beat
+
+	def __call__(self):
+		return self.get_beat()
 		
 	def make_list(self, parameters = 3):
 		self.fixedList = []
