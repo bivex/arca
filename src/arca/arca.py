@@ -2720,10 +2720,6 @@ class Arpeggiation(Default):
 		
 			TODO: Incorporate this new logic into the CoreVoiceleading version of the routine.
 		
-			TODO: save all the scale degrees of the different NHTs?
-		
-			TODO: forward looking NHT evaluation?
-		
 		I fear the logic here is still not geat.
 		
 		"""
