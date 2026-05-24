@@ -679,11 +679,11 @@ class CoreVoiceleading(Default):
 			J - NR inversion (combines I and i)
 			 	J(A, B) - NR inversion around AB
 				Jx		- NR inversion number x (nondualist)
-				TODO: J* - NR inversion number x (dualist)??
+				J*x     - NR inversion number x (dualist)
 		
-			Kx - NR inversion number x (nondualist) TODO: rename
+			Kx - NR inversion number x (nondualist)
 		
-			S - dualist transposition TODO: rename
+			S - dualist transposition
 		
 			L - motion along the 'voice leading lattice' (Tymoczko "Scale Networks")
 			
@@ -888,6 +888,8 @@ class CoreVoiceleading(Default):
 				return [inversionFunction, [pitches[0], pitches[1]], {}]
 				
 		elif tType == 'J':
+			isDualist = tLabel.startswith('*')
+			if isDualist: tLabel = tLabel[1:]
 			if tLabel.count('('):
 				PCs = self.find_inversion_from_text(tLabel)							
 				if self.container:
@@ -899,7 +901,7 @@ class CoreVoiceleading(Default):
 				extraRotations = tLabel.count('.')
 				tLabel = ''.join([x for x in tLabel if (x.isdigit() or x == '-')])
 				if tLabel:
-					return [self.NR_inversion_by_number, [int(tLabel), extraRotations, True], {}]
+					return [self.NR_inversion_by_number, [int(tLabel), extraRotations, isDualist], {}]
 		
 		elif tType == 'K':
 			extraRotations = tLabel.count('.')
