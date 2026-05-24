@@ -1,0 +1,16 @@
+[project]
+name = "arca"
+version = "0.1.0"
+description = "A pattern language for music"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "music21>=10.1.0",
+]
+
+[project.scripts]
+arca = "arca.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
