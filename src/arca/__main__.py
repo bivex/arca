@@ -11,7 +11,10 @@ def main():
     
     p = Program(program_file)
     if output_file:
-        p.show_XML(output_file)
+        if output_file.lower().endswith(('.mid', '.midi')):
+            p.write_MIDI(output_file)
+        else:
+            p.show_XML(output_file)
     else:
         # Default behavior if no output file specified?
         # Maybe just run it.

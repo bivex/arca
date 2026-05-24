@@ -3785,48 +3785,71 @@ class Program():
 				self.show_music21()
 				return
 			
-	def show_music21(self):
+	def get_music21_stream(self):
 		try:
 			import music21
 		except ImportError:
 			print("MUSIC21 IMPORT ERROR: Please install music21 to use this feature.")
-			return False
+			return None
 		
-		self.totalParts = []
+		totalParts = []
 		
-		for obj, data in self.masterOutput.items():
+		# Sort parts by streamOrder
+		sorted_items = list(self.masterOutput.items())
 		
+		for obj, data in sorted_items:
 			if not data:
-				self.totalParts.append(False)
+				totalParts.append(None)
 				continue
 		
 			p = music21.stream.Part()
 			p.insert(0, music21.meter.TimeSignature(f'{self.timeSignature[0]}/{self.timeSignature[1]}'))
-			self.totalParts.append(p)
+			totalParts.append(p)
 		
 			for offset, chords in data.items():
 				for noteData in chords:
 					notes, velocities, duration = noteData
 					velocity = velocities[0]
-					if notes is None or notes == [None]:						# todo: how does brython deal with this
+					if notes is None or notes == [None]:
 						c = music21.note.Rest(quarterLength = duration*self.beatDuration)
 					else:
 						c = music21.chord.Chord(notes, quarterLength = duration*self.beatDuration)
+						c.volume.velocity = velocity
 					p.insert(offset*self.beatDuration, c)
 				
-		self.output = music21.stream.Stream()
-		maxLength = max([p.quarterLength for p in self.totalParts if p])
+		output = music21.stream.Stream()
+		valid_parts = [p for p in totalParts if p]
+		if not valid_parts:
+			return output
+			
+		maxLength = max([p.quarterLength for p in valid_parts])
 	
 		for i in self.streamOrder:
-			p = self.totalParts[i]
-			if p:
-				self.output.insert(0, p)
-				d = maxLength - p.quarterLength
-				if d > 0:
-					p.append(music21.note.Rest(quarterlength = d))
-				p.makeVoices(inPlace = True)
-		
-		self.output.show()
+			if i < len(totalParts):
+				p = totalParts[i]
+				if p:
+					output.insert(0, p)
+					d = maxLength - p.quarterLength
+					if d > 0:
+						p.append(music21.note.Rest(quarterLength = d))
+					p.makeVoices(inPlace = True)
+		return output
+
+	def show_music21(self):
+		stream = self.get_music21_stream()
+		if stream:
+			stream.show()
+
+	def write_MIDI(self, fileName = 'arca_output.mid'):
+		stream = self.get_music21_stream()
+		if stream:
+			try:
+				stream.write('midi', fp = fileName)
+				print(f"MIDI file written to {fileName}")
+				return True
+			except Exception as e:
+				print(f"ERROR writing MIDI: {e}")
+		return False
 	
 	def consolidate_output(self):
 		self.consolidatedOutput = {}
