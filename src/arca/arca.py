@@ -1658,8 +1658,6 @@ class ScalePattern(Default):
 	
 	The main things it supplies are (a) ordering; and (b) NHT syntax.
 	
-	TODO: write "save" and "restore" routines that allow for cardinality changes.
-	
 	NHT syntax: 
 	
 		Incomplete neighbors (can also be used for passing tones or complete neighbors):
@@ -1757,10 +1755,27 @@ class ScalePattern(Default):
 				self.screenedNotes = screenedNotes
 			if not self.noteGroups:
 				self.noteGroups = noteGroups
-		
-		if self.defaultArgs.get('useGroups'):				# should be irrelevant?
+
+		if self.defaultArgs.get('useGroups'):							# should be irrelevant?
 			self.useGroups = True
-		
+
+	def save_notes(self):
+		self.savedState = {
+			'startNotes': copy.deepcopy(getattr(self, 'startNotes', [])),
+			'currentNotes': copy.deepcopy(getattr(self, 'currentNotes', [])),
+			'fullStructure': copy.deepcopy(getattr(self, 'fullStructure', [])),
+			'noteGroups': copy.deepcopy(getattr(self, 'noteGroups', [])),
+			'screenedNotes': copy.deepcopy(getattr(self, 'screenedNotes', []))
+		}
+
+	def restore_initial_notes(self):
+		if hasattr(self, 'savedState'):
+			self.startNotes = copy.deepcopy(self.savedState['startNotes'])
+			self.currentNotes = copy.deepcopy(self.savedState['currentNotes'])
+			self.fullStructure = copy.deepcopy(self.savedState['fullStructure'])
+			self.noteGroups = copy.deepcopy(self.savedState['noteGroups'])
+			self.screenedNotes = copy.deepcopy(self.savedState['screenedNotes'])
+
 	def parse_string(self, s):
 		"""
 		Text syntax:
@@ -3317,20 +3332,29 @@ class VelocityGenerator(Default):
 				}
 	
 	def __init__(self, *args, **kwargs):
-		"""
-		TODO: add a single add_generator function?
-		"""
-		
+
 		self.set_default_arguments(kwargs)
-		
+
 		self.get_generators(self.generators, self.additiveGenerators)
 		if self.multiplicativeGenerators:
 			self.get_generators(self.multiplicativeGenerators[:], self.multiplicativeGenerators)
-		
+
 		"""automatically makes a list of repeating values"""
 		if self.makeList:
 			self.make_list(self.makeList)
-	
+
+	def add_generator(self, funcName, gList=None):
+		if gList is None:
+			gList = self.additiveGenerators
+		if type(funcName) is str:
+			if hasattr(self, funcName):
+				gList.append(getattr(self, funcName))
+			else:
+				print('ARCA ERROR: VelocityGenerator has no attribute', funcName)
+		elif type(funcName) is int:
+			gList.append(VelocityGenerator.funcgenerator(funcName))
+		else:
+			gList.append(funcName)
 	def get_generators(self, gNames, gList):
 		gList[:] = []
 		
@@ -3462,19 +3486,24 @@ class RhythmGenerator(Default):
 				}
 	
 	def __init__(self, *args, **kwargs):
-		"""
-		TODO: add a single add_generator function?
-		"""
-		
+
 		self.set_default_arguments(kwargs)
-		
+
 		self.durationHistoModulus = weighted_choice(self.durationHisto)
 		self.get_generators(self.generators[:])
-		
+
 		"""automatically makes a list of repeating values"""
 		if self.makeList:
 			self.make_list(self.makeList)
-	
+
+	def add_generator(self, funcName):
+		if type(funcName) is str:
+			if hasattr(self, funcName):
+				self.generators.append(getattr(self, funcName))
+			else:
+				print('ARCA ERROR: RhythmGenerator has no attribute', funcName)
+		else:
+			self.generators.append(funcName)
 	def get_generators(self, gList):
 		self.generators = []
 		
@@ -3636,10 +3665,6 @@ class Program():
 	
 	def show_XML(self, fileName = DEFAULTOUTPUT, autoOpen = True):
 		
-		"""
-		TODO: support key signature
-		"""
-		
 		maxTime = 0
 		highestOffset = 0
 		
@@ -3660,7 +3685,9 @@ class Program():
 		
 		for partNumber in self.streamOrder:
 			
-			kwargs = {'TimeSignature': self.timeSignature}
+			kwargs = {'TimeSignature': getattr(self, 'timeSignature', [4, 4])}
+			if hasattr(self, 'keySignature'):
+				kwargs['KeySignature'] = self.keySignature
 			
 			obj, data = theParts[partNumber]
 			newData = {}
@@ -3707,9 +3734,9 @@ class Program():
 			
 	def show_music21(self):
 		try:
-			import music21							# TODO: enclose in a try loop, provide another way of showing?
-		except:
-			print("MUSIC21 IMPORT ERROR")
+			import music21
+		except ImportError:
+			print("MUSIC21 IMPORT ERROR: Please install music21 to use this feature.")
 			return False
 		
 		self.totalParts = []
@@ -3877,7 +3904,6 @@ class Program():
 				inputSplit[i] = s[:s.index('//')]
 		
 		for s in inputSplit:
-			"""TODO: allow for time signature = beat duration = etc. (two words)"""
 			sSplit = s.split()
 			if not sSplit: continue
 			if sSplit[0].startswith('@'):
@@ -3886,7 +3912,10 @@ class Program():
 				sSplit = sSplit[1:]
 			else:
 				targetBeat = 0
-			if len(sSplit) > 1 and sSplit[1] == '=':
+			if '=' in sSplit:
+				eq_index = sSplit.index('=')
+				varName = ''.join(sSplit[:eq_index])
+				sSplit = [varName, '='] + sSplit[eq_index+1:]
 				result = self.parse_assignment(sSplit)
 				if result:
 					self.defaultTimeline.add_event(targetBeat, result)
@@ -3918,6 +3947,15 @@ class Program():
 			self.timeSignature = [int(numerator), int(denominator)]
 			self.update_tempo()
 			#print(self.timeSignature, f'Measure length is {self.measureLength}')
+			return
+		elif varUp == 'KEYSIGNATURE':
+			# Format: KeySignature = 2 major
+			try:
+				fifths = int(sSplit[2])
+				mode = sSplit[3] if len(sSplit) > 3 else 'major'
+				self.keySignature = [fifths, mode]
+			except ValueError:
+				pass
 			return
 		elif varUp == 'BASICDURATION' or varUp == 'BEATDURATION':
 			self.beatDuration = parse_number(sSplit[2])
@@ -4046,14 +4084,7 @@ class Timeline(Default):
 		if offset not in self.actionItems:
 			return False
 		
-		sequenceList = self.actionItems.get(offset, [])
-		
-		"""TODO: fix Brython kludge"""
-		try:
-			del self.actionItems[offset]
-		except:
-			i = int (offset)
-			del self.actionItems[i]			# if i in self.actionItems ... [???]
+		sequenceList = self.actionItems.pop(offset, [])
 		
 		for sequenceNumber, sequence in enumerate(sequenceList):
 			self.currentOffset = offset
@@ -4087,9 +4118,11 @@ class Timeline(Default):
 				out.append(item)
 		
 		sSplit[0] = sSplit[0].replace('Stream:', ':')
-		if all([x.isdigit() for x in sSplit[0]]):
-			"""TODO: add code here to name streams in a way that orders them"""
-			pass
+		stream_name = sSplit[0].replace(':', '')
+		if stream_name.isdigit():
+			self.name = f"Stream_{int(stream_name):03d}"
+		else:
+			self.name = stream_name
 			
 		sequence = []
 		self.add_sequence(targetBeat, sequence)
